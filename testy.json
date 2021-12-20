@@ -1,0 +1,241 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "sku": {
+            "type": "string",
+            "defaultValue": "21h1-evd"
+        },
+        "scriptsContainer": {
+            "type": "string",
+            "defaultValue": "https://aibstorscript26052021.blob.core.windows.net/publicscripts/",
+            "metadata": {
+                "description": "Location of powershell script to customize your image"
+            }
+        }
+    },
+    "variables": {
+        "imageTemplateName": "wvdmasterimage2"
+    },
+    "resources": [
+        {
+            "name": "[variables('imageTemplateName')]",
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "apiVersion": "2019-05-01-preview",
+            "location": "[resourcegroup().location]",
+            "dependsOn": [],
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "/subscriptions/4aad56fb-d91d-442d-bd0c-6b9fc1b6fa18/resourcegroups/RG-WVD-Images/providers/Microsoft.ManagedIdentity/userAssignedIdentities/aibIdentity": {}
+                }
+            },
+            "properties": {
+                "buildTimeoutInMinutes": 365,
+                "vmProfile": {
+                    "vmSize": "Standard_B4ms",
+                    "osDiskSizeGB": 127
+                },
+                "source": {
+                    "type": "PlatformImage",
+                    "publisher": "MicrosoftWindowsDesktop",
+                    "offer": "windows-10",
+                    "sku": "[parameters('sku')]",
+                    "version": "latest"
+                },
+                "customize": [
+                    // {
+                    //     "type": "PowerShell",
+                    //     "name": "GetAzCopy",
+                    //     "inline": [
+                    //         "New-Item -Type Directory -Path 'c:\\' -Name temp",
+                    //         "invoke-webrequest -uri 'https://aka.ms/downloadazcopy-v10-windows' -OutFile 'c:\\temp\\azcopy.zip'",
+                    //         "Expand-Archive 'c:\\temp\\azcopy.zip' 'c:\\temp'",
+                    //         "copy-item 'C:\\temp\\azcopy_windows_amd64_*\\azcopy.exe\\' -Destination 'c:\\temp'"
+                    //     ]
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "name": "InstallSpss",
+                    //     "inline": [
+                    //         "c:\\temp\\azcopy.exe copy 'https://aibstorscript26052021.blob.core.windows.net/scriptscontainer/app.zip?sv=2020-04-08&st=2021-06-08T13%3A34%3A00Z&se=2021-06-30T13%3A34%3A00Z&sr=b&sp=r&sig=OWDU8Ld2t2pS2e5sOGepYq%2BQ9QH4B7ApzvVSnsm5g34%3D' c:\\temp\\app.zip",
+                    //         "Expand-Archive 'c:\\temp\\app.zip' c:\\temp",
+                    //         "Write-output \"Install SPSS.\"",
+                    //         "cmd /c 'msiexec /i \"C:\\temp\\SPSS 25\\IBM SPSS Statistics 25.msi\" /q LICENSETYPE=\"Network\" LSHOST=\"172.24.1.9\" INSTALLPYTHON=\"1\" TRANSFORMS=\"C:\\temp\\SPSS 25\\1033.mst\"'"
+                    //     ]
+                    // },
+                    {
+                        "type": "PowerShell",
+                        "runElevated": true,
+                        "inline": [
+                            "$ErrorActionPreference='Continue'",
+                            "Set-MpPreference -DisableRealtimeMonitoring $true",
+                            "Write-output \"Defender RealTime scanning temporarily disabled\"",
+                            "Invoke-Expression ((New-Object -TypeName net.webclient).DownloadString('https://chocolatey.org/install.ps1'))",
+                            "& choco feature enable -n allowGlobalConfirmation",
+                            "Write-output \"Chocolatey Installed.\""
+                        ]
+                    },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Install-Languagepack",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Install-Languagepack.ps1')]"
+                    // },
+                    // {
+                    //     "type": "WindowsRestart",
+                    //     "restartTimeout": "15m"
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "inline": [
+                    //         "$ErrorActionPreference='Stop'",
+                    //         "choco install microsoft-office-deployment --ignore-checksums -y -params '\"/64bit /DisableUpdate:FALSE /Shared /Language:fr-fr /Product:O365ProPlusRetail /Exclude:Access,Publisher,OneDrive,Groove,Teams,Lync\"'",
+                    //         "choco install googlechrome --ignore-checksums -y",
+                    //         "choco install firefox --ignore-checksums -y",
+                    //         "choco install adobereader --ignore-checksums -y",
+                    //         "choco install vlc --ignore-checksums -y"
+                    //     ]
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Customize-Win10",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Customize-Win10.ps1')]"
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Install-AppleKeyboard",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Install-AppleKeyboard.ps1')]"
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Install-fslogix",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Install-fslogix.ps1')]"
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "inline": [
+                    //         "$ErrorActionPreference='Stop'",
+                    //         "REG ADD HKLM\\SOFTWARE\\FSlogix\\Profiles /V VHDLocations /T REG_MULTI_SZ /D \\\\userprofileescclermont.file.core.windows.net\\fslogix\\%username%\\VHD /f",
+                    //         "New-Item -Path C:\\Windows\\System32\\GroupPolicy\\Machine\\Scripts\\Startup\\ -ItemType Directory -Force",
+                    //         "'$fslogix = \"cmdkey /add:userprofileescclermont.file.core.windows.net /user:Azure\\userprofileescclermont /pass:YIShiqkB2gbZYcPJNbQgc7QQIpNQMD6MNqMl9cKQsJAZSsP65XUitHIgTdJm8wXlSyBMjfuX7ke1d4dS0Ib58g==\"'",
+                    //         "Set-Content C:\\Windows\\System32\\GroupPolicy\\Machine\\Scripts\\Startup\\start.ps1 \"$fslogix\""
+                    //     ]
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "inline": [
+                    //         "Add-MpPreference -ExclusionPath \"%ProgramFiles%\\FSLogix\\Apps\\frxccd.exe\"",
+                    //         "Add-MpPreference -ExclusionPath \"%ProgramFiles%\\FSLogix\\Apps\\frxccds.exe\"",
+                    //         "Add-MpPreference -ExclusionPath \"%ProgramFiles%\\FSLogix\\Apps\\frxsvc.exe\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%ProgramFiles%\\FSLogix\\Apps\\frxdrv.sys\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%ProgramFiles%\\FSLogix\\Apps\\frxdrvvt.sys\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%ProgramFiles%\\FSLogix\\Apps\\frxccd.sys\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%TEMP%*.VHD\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%TEMP%*.VHDX\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%Windir%\\TEMP*.VHD\"",
+                    //         "Add-MpPreference -ExclusionExtension \"%Windir%\\TEMP*.VHDX\"",
+                    //         "Add-MpPreference -ExclusionExtension \"\\\\userprofileescclermont.file.core.windows.net\\fslogix\\*.VHD\"",
+                    //         "Add-MpPreference -ExclusionExtension \"\\\\userprofileescclermont.file.core.windows.net\\fslogix\\*.VHDX\""
+                    //     ]
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Install-OneDrive",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Install-OneDrive.ps1')]"
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "inline": [
+                    //         "REG ADD \"HKLM\\SOFTWARE\\Policies\\Microsoft\\OneDrive\" /v \"KFMSilentOptIn\" /t REG_SZ /d \"6413467b-c4fa-445e-b3b6-b5ce5e606aba\" /f"
+                    //     ]
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Install-Teams",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Install-Teams.ps1')]"
+                    // },
+                    // {
+                    //     "type": "WindowsUpdate",
+                    //     "searchCriteria": "IsInstalled=0",
+                    //     "filters": [
+                    //         "exclude:$_.Title -like '*Preview*'",
+                    //         "include:$true"
+                    //     ],
+                    //     "updateLimit": 40
+                    // },
+                    // {
+                    //     "type": "WindowsRestart",
+                    //     "restartTimeout": "15m"
+                    // },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "name": "Install-Teams-WSOC",
+                    //     "scriptUri": "[concat(parameters('scriptsContainer'), 'Install-Teams-WSOC.ps1')]"
+                    // },
+                    // {
+                    //     "type": "WindowsUpdate",
+                    //     "searchCriteria": "IsInstalled=0",
+                    //     "filters": [
+                    //         "exclude:$_.Title -like '*Preview*'",
+                    //         "include:$true"
+                    //     ],
+                    //     "updateLimit": 40
+                    // },
+                    {
+                        "type": "PowerShell",
+                        "runElevated": true,
+                        "runAsSystem": true,
+                        "name": "Win10_2009_VDI_Optimize",
+                        "scriptUri": "[concat(parameters('scriptsContainer'), 'Win10_2009_VDI_Optimize.ps1')]"
+                    },
+                    {
+                        "type": "WindowsRestart",
+                        "restartTimeout": "15m"
+                    },
+                    // {
+                    //     "type": "PowerShell",
+                    //     "runElevated": true,
+                    //     "inline": [
+                    //         "$ErrorActionPreference='Stop'",
+                    //         "Set-MpPreference -DisableRealtimeMonitoring $false",
+                    //         "Write-output \"Defender RealTime enabled\""
+                    //     ]
+                    //  },
+                    {
+                        "type": "PowerShell",
+                        "runElevated": true,
+                        "name": "Finalize-VM",
+                        "scriptUri": "[concat(parameters('scriptsContainer'), 'Finalize-VM.ps1')]"
+                    }
+                ],
+                "distribute": [
+                    {
+                        "type": "SharedImage",
+                        "galleryImageId": "/subscriptions/4aad56fb-d91d-442d-bd0c-6b9fc1b6fa18/resourceGroups/RG-WVD-Images/providers/Microsoft.Compute/galleries/sigmasterwvd/images/img-wvd",
+                        "runOutputName": "wvd-master",
+                        "artifactTags": {
+                            "source": "azureVmImageBuilder",
+                            "baseosimg": "windows2019"
+                        },
+                        "replicationRegions": [
+                            "westeurope"
+                        ]
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "ImageTemplateName": {
+            "type": "string",
+            "value": "[variables('imageTemplateName')]"
+        }
+    }
+}
