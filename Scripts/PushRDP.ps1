@@ -34,4 +34,4 @@ signature:s:AQABAAEAAAAfFQAAMIIVGwYJKoZIhvcNAQcCoIIVDDCCFQgCAQExDzANBglghkgB  ZQ
 
 "@
 
-$rdpFile | Out-File "$env:public\Desktop\GaiaV2.rdp" -Force
+$rdpFile | Out-File "C:\Users\Default\Desktop\GaiaV2.rdp" -Force
